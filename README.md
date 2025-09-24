@@ -1,8 +1,44 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# About `bartik.weight`
+# A faster implementation of `bartik.weight`; validated on ADH
+## Actions taken (with the help of GPT-5-thinking)
+- Optimized core C++ routine to remove dense n×n matrices:
+   - Changed ComputeAlphaBeta to accept a weight vector (length n) instead of an n×n diagonal matrix.
+   - Replaced explicit residual-maker matrix M with fast weighted solves using normal equations Q = W' diag(w) W.
+   - Removed the unused residualization of Z (the original code never used ZZ).
+   - Computed cross-products with vectorized operations and minimized allocations.
 
+- Updated R wrapper to pass a weight vector and avoid building large diagonal matrices:
+   - When weight is NULL, use rep(1, n); otherwise, pass master[[weight]] as a numeric vector.
+   - Built WW with a rep(1, n) intercept column to avoid allocating an n×1 matrix of ones.
+
+- Kept the public R interface unchanged:
+   - bw(master, y, x, controls, weight, local, Z, global, G) signature is intact.
+   - Output (alpha and beta) is unchanged in shape and meaning.
+
+**Files changed**
+- `bw.cpp`
+   - Switched to weight as arma::vec and removed dense I and M_W.
+   - Residualization now via solve(Q, rhs) for x and y only (matching original behavior).
+   - Fast vectorized computation for alpha and beta.
+
+- `RcppExports.cpp`
+   - Updated binding to pass weight as arma::vec.
+
+- `bw.R`
+   - Avoided diag(n) and diag(weights) creation.
+   - Used rep(1.0, n) for the intercept.
+
+- `RcppExports.R`
+   - No signature change needed in R, binding still calls the same C symbol.
+
+**Why this is faster**
+- No more O(n^2) memory/time to build or multiply by n×n diagonal or projection matrices.
+- Residualization uses small k×k solves (k = number of controls + intercept), which is typically tiny compared to n.
+- Fewer temporary allocations and better cache locality via column-wise scaling and compact cross-products.
+
+## About
 [![Travis-CI Build
 Status](https://travis-ci.org/jjchern/bartik.weight.svg?branch=master)](https://travis-ci.org/jjchern/bartik.weight)
 [![AppVeyor Build
