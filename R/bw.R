@@ -66,16 +66,16 @@ bw = function(master, y, x, controls = NULL, weight = NULL, local, Z, global, G)
     n = length(x)
 
     if (is.null(weight)) {
-        weight = diag(n)
+        weight_vec = rep(1.0, n)
     } else {
-        weight = diag(master[[weight]], n, n)
+        weight_vec = as.numeric(master[[weight]])
     }
 
     if (is.null(controls)) {
         WW = matrix(1, n, 1)
     } else {
-        W = as.matrix(master[controls])
-        WW = cbind(W, matrix(1, n, 1))
+    W = as.matrix(master[controls])
+    WW = cbind(W, rep(1.0, n))
     }
 
     # Parsing the local file
@@ -85,7 +85,7 @@ bw = function(master, y, x, controls = NULL, weight = NULL, local, Z, global, G)
     G = global[[G]]
 
     # Compute the Rotemberg weights (alpha) and the just-identified coefficients (beta)
-    alpha_beta = ComputeAlphaBeta(y, x, WW, weight, Z, G)
+    alpha_beta = ComputeAlphaBeta(y, x, WW, weight_vec, Z, G)
 
     # Return a tibble
     tibble::as_tibble(cbind(global, alpha = alpha_beta[[1]], beta = alpha_beta[[2]]))
