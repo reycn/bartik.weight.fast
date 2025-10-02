@@ -17,6 +17,9 @@
    - bw(master, y, x, controls, weight, local, Z, global, G) signature is intact.
    - Output (alpha and beta) is unchanged in shape and meaning.
 
+**Speed Comparison**
+![](./docs/benchmark_bartik_weight.png)
+
 **Files changed**
 - `bw.cpp`
    - Switched to weight as arma::vec and removed dense I and M_W.
