@@ -72,20 +72,34 @@ bw = function(master, y, x, controls = NULL, weight = NULL, local, Z, global, G)
     }
 
     if (is.null(controls)) {
-        WW = matrix(1, n, 1)
+        WW <- matrix(1, n, 1)
     } else {
-    W = as.matrix(master[controls])
-    WW = cbind(W, rep(1.0, n))
+        W <- as.matrix(master[controls])
+        # If controls is an empty character vector, W will have 0 columns.
+        WW <- cbind(W, rep(1.0, n))
     }
+    # Force to plain numeric matrix (drop potential tibble classes)
+    storage.mode(WW) <- "double"
+    WW <- as.matrix(WW)
+    if (!is.matrix(WW)) stop("Internal error: WW not a matrix after coercion.")
 
     # Parsing the local file
-    Z = as.matrix(local[Z])
+    Z <- as.matrix(local[Z])
+    storage.mode(Z) <- "double"
+    if (!is.matrix(Z)) stop("Z must subset to a matrix after coercion.")
+    if (nrow(Z) != n) stop("Row mismatch: nrow(Z) != length(x).")
 
     # Parsing the global file
-    G = global[[G]]
+    G <- global[[G]]
+    # Validate G length: should match number of instruments (columns of Z)
+    if (length(G) != ncol(Z)) {
+        stop(sprintf("Length of G (%d) must equal number of instruments / columns of Z (%d).",
+                     length(G), ncol(Z)))
+    }
+    G <- as.numeric(G)
 
     # Compute the Rotemberg weights (alpha) and the just-identified coefficients (beta)
-    alpha_beta = ComputeAlphaBeta(y, x, WW, weight_vec, Z, G)
+    alpha_beta <- ComputeAlphaBeta(y, x, WW, weight_vec, Z, G)
 
     # Return a tibble
     tibble::as_tibble(cbind(global, alpha = alpha_beta[[1]], beta = alpha_beta[[2]]))
